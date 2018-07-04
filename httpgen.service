@@ -1,0 +1,12 @@
+[Unit]
+Description=HTTPgen
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/opt/httpgen/HTTPgen.py --proxy 10.29.0.1:8080 --reqs 50 --stats /var/www/client/data.txt:5 --ctimeout 2 --rtimeout 2 --stimeout 3
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

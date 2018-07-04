@@ -1,0 +1,147 @@
+<html>
+<head> <meta http-equiv="pragma" content="no-cache" />
+	<meta http-equiv="cache-control" content="max-age=0" />
+
+	<title>Request generator</title>
+	<script src="jquery.min.js"></script>
+	<script src="Chart.bundle.min.js"></script>
+	
+	<style type="text/css">
+		body {
+		}
+
+		.main {
+			position:absolute;
+			top:0;
+			left:0;
+			bottom:0;
+			right:0;
+			height:100%;
+			width:100%;
+			max-height:100%;
+			max-width:100%;
+		}
+	
+		.content {
+			text-align: center;
+		}
+
+		.perf {
+			height:70%;
+			padding: 0;
+			margin: auto; display: block;
+		}
+	</style>
+</head>
+<body>
+<div class="main">
+	<div class="content">
+		<h1>HTTP request generator statistics</h1>
+
+		<canvas class="perf" id="perf"></canvas>
+	</div>
+</div>
+
+<script>
+var last_data = 0;
+function update() {
+	$.get("data.txt", function( data ) {
+		var c_time = new Date();
+		lines = data.split("\n");
+		for (var i=0; i<lines.length; i++) {
+			line = lines[i].split(' ');
+			if (line.length != 6) { continue; }
+
+			var d_time = parseInt(line[0]);
+			var d_conf = parseInt(line[1]);
+			var d_ok   = parseInt(line[2]);
+			var d_to   = parseInt(line[3]);
+			var d_inv  = parseInt(line[4]);
+			var d_err  = parseInt(line[5]);
+
+			if (d_time <= last_data) { continue; }
+
+			d_time_o = new Date(d_time*1000);
+			if ( (c_time.getTime() - d_time_o.getTime())/1000 > (15*60) ) { continue; }
+
+			console.log(c_time.getTime() - d_time_o.getTime());
+			for (var i=0; i<=4; i++) {
+				while (perf.data.datasets[i].data.length > 60) { perf.data.datasets[i].data.shift(); }
+			}
+			perf.data.datasets[0].data.push( { x: d_time_o, y: d_ok } );
+			perf.data.datasets[1].data.push( { x: d_time_o, y: d_conf } );
+			perf.data.datasets[2].data.push( { x: d_time_o, y: d_to } );
+			perf.data.datasets[3].data.push( { x: d_time_o, y: d_inv } );
+			perf.data.datasets[4].data.push( { x: d_time_o, y: d_err } );
+
+			last_data = d_time;
+		};
+
+		perf.update();
+	});
+}
+
+
+var ctx = document.getElementById("perf").getContext('2d');
+var perf = new Chart(ctx, {
+    type: 'line',
+    data: {
+		datasets: [
+			{
+				label: 'successfull',
+				borderColor: 'rgba(75, 192, 192, 0.75)',
+				fill: false,
+			},
+			{
+				label: 'configured',
+				borderColor: 'rgba(54, 162, 235, 1)',
+				fill: false,
+			},
+			{
+				label: 'timeouted',
+				borderColor: 'rgba(255,99,132,1)',
+				fill: false,
+			},
+			{
+				label: 'invalid response',
+				borderColor: 'rgba(255, 159, 64, 1)',
+				fill: false,
+			},
+			{
+				label: 'other error',
+				borderColor: 'rgba(153, 102, 255, 1)',
+				fill: false,
+			}
+		],
+   },
+	options: {
+		responsive: false,
+		maintainAspectRatio: false,
+        scales: {
+				xAxes: [{
+					type: 'time',
+					time: {
+						unit: 'second',
+						displayFormats: {
+							quarter: 'h:mm:ss a'
+                  }
+					}
+				}],
+            yAxes: [{
+					ticks: {
+						beginAtZero:true,
+						max: 80,
+					},
+					scaleLabel: {
+			        display: true,
+		   	     labelString: 'requests per second'
+					},
+            }]
+        }
+    }
+});
+
+setInterval(update, 1000);
+</script>
+</body>
+</html>
